@@ -2,6 +2,7 @@ library geolocator;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:google_api_availability/google_api_availability.dart';
@@ -17,6 +18,10 @@ part 'utils/codec.dart';
 
 /// Provides easy access to the platform specific location services (CLLocationManager on iOS and FusedLocationProviderClient on Android)
 class Geolocator {
+  static PermissionGroup locationPermission = Platform.isAndroid
+      ? PermissionGroup.location
+      : PermissionGroup.locationAlways;
+
   factory Geolocator() {
     if (_instance == null) {
       const MethodChannel methodChannel =
@@ -52,7 +57,7 @@ class Geolocator {
   /// Returns a [bool] value indicating whether location services are enabled on the device.
   Future<bool> isLocationServiceEnabled() async {
     final ServiceStatus serviceStatus =
-        await PermissionHandler().checkServiceStatus(PermissionGroup.location);
+        await PermissionHandler().checkServiceStatus(locationPermission);
 
     return serviceStatus == ServiceStatus.enabled ? true : false;
   }
@@ -174,17 +179,16 @@ class Geolocator {
   }
 
   Future<PermissionStatus> _getLocationPermission() async {
-    final PermissionStatus permission = await PermissionHandler()
-        .checkPermissionStatus(PermissionGroup.location);
+    final PermissionStatus permission =
+        await PermissionHandler().checkPermissionStatus(locationPermission);
 
     if (permission != PermissionStatus.granted &&
         permission != PermissionStatus.disabled) {
       final Map<PermissionGroup, PermissionStatus> permissionStatus =
           await PermissionHandler()
-              .requestPermissions(<PermissionGroup>[PermissionGroup.location]);
+              .requestPermissions(<PermissionGroup>[locationPermission]);
 
-      return permissionStatus[PermissionGroup.location] ??
-          PermissionStatus.unknown;
+      return permissionStatus[locationPermission] ?? PermissionStatus.unknown;
     } else {
       return permission;
     }
